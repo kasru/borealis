@@ -900,6 +900,10 @@ void Application::giveFocus(View* view)
         newFocus->onFocusGained();
         Logger::debug("Giving focus to {}", newFocus->describe());
     }
+    else if (oldFocus)
+    {
+        Logger::warning("Focus cleared (previous: {})", oldFocus->describe());
+    }
 
     Application::globalHintsUpdateEvent.fire();
 }
@@ -945,6 +949,12 @@ bool Application::popActivity(TransitionAnimation animation, std::function<void(
 
         Application::focusStack.pop_back();
     }
+
+    // Nothing was restored (empty stack - e.g. its entry was purged because
+    // that view got destroyed while this activity was on top): focus the shown
+    // activity, otherwise input stays dead after the popped activity dies.
+    if (toShow && !Application::getCurrentFocus())
+        Application::giveFocus(toShow->getContentView());
 
     // Hide animation (and show previous activity, if any)
     last->hide([last, cb, free]()
